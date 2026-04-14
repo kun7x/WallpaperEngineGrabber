@@ -169,6 +169,9 @@ def printlog(page, text, output_column, console_text_color):
 def main(page: ft.Page):
     global save_location, output, output_column, console_text_color
 
+    # --- Service Initialization (Moved to Lazy Loading inside select_save_location) ---
+    file_picker = None
+
     # --- Theme Mode ---
     theme_mode = load_theme_mode()
     page.theme_mode = ft.ThemeMode.DARK if theme_mode == "dark" else ft.ThemeMode.LIGHT
@@ -308,12 +311,12 @@ def main(page: ft.Page):
     )
     output = ft.Container(
         content=output_column,
-        border=ft.border.all(1, ft.Colors.OUTLINE),
+        border=ft.Border.all(1, ft.Colors.OUTLINE),
         border_radius=8,
         padding=7,
         bgcolor=console_bg,
         expand=True,
-        alignment=ft.alignment.center,
+        alignment=ft.Alignment.CENTER,
     )
 
     # --- Theme Toggle ---
@@ -325,8 +328,8 @@ def main(page: ft.Page):
         output.bgcolor = get_console_bg()
         # Update page gradient
         page.gradient = ft.LinearGradient(
-            begin=ft.alignment.top_left,
-            end=ft.alignment.bottom_right,
+            begin=ft.Alignment.TOP_LEFT,
+            end=ft.Alignment.BOTTOM_RIGHT,
             colors=[ft.Colors.WHITE, ft.Colors.BLUE_100] if page.theme_mode == ft.ThemeMode.LIGHT else [ft.Colors.BLACK, ft.Colors.BLUE_GREY_900],
         )
         page.update()
@@ -399,10 +402,15 @@ def main(page: ft.Page):
             printlog(page, "Invalid save location: The selected directory is not valid.", output_column, console_text_color)
         page.update()
 
-    file_picker = ft.FilePicker(on_result=set_save_location)
-    page.overlay.append(file_picker)
-
     def select_save_location(e):
+        nonlocal file_picker
+        if file_picker is None:
+            # Initialize FilePicker only when specifically requested
+            file_picker = ft.FilePicker()
+            file_picker.on_result = lambda res: set_save_location(res)
+            page.overlay.append(file_picker)
+            page.update()
+        
         file_picker.get_directory_path()
 
     def run_command(pubfileid):
@@ -441,20 +449,29 @@ def main(page: ft.Page):
             printlog(page, f"Error running download command: {str(e)}", output_column, console_text_color)
 
     def run_commands():
+        printlog(page, "Preparing to download...", output_column, console_text_color)
         links = link_input.value.splitlines()
+        found_any = False
         for link in links:
-            if link:
+            if link.strip():
                 match = re.search(r'\b\d{8,10}\b', link.strip())
                 if match:
+                    found_any = True
                     run_command(match.group(0))
                 else:
-                    printlog(page, f"Invalid link: {link}", output_column, console_text_color)
+                    printlog(page, f"Skipping invalid link: {link}", output_column, console_text_color)
+        
+        if not found_any:
+            printlog(page, "Error: No valid workshop IDs/links found in the input box.", output_column, console_text_color)
+        else:
+            printlog(page, "Batch download process completed.", output_column, console_text_color)
 
     def start_thread(e):
-        run_commands()
+        printlog(page, "Starting download process...", output_column, console_text_color)
+        page.run_thread(run_commands)
 
     run_button = ft.FilledButton(
-        text="Download",
+        content="Download",
         icon=ft.Icons.FILE_DOWNLOAD_OUTLINED,
         on_click=start_thread,
         style=ft.ButtonStyle(
@@ -465,7 +482,7 @@ def main(page: ft.Page):
     )
 
     select_button = ft.OutlinedButton(
-        text="Select Save Location",
+        content="Select Save Location",
         icon=ft.Icons.MY_LOCATION,
         on_click=select_save_location,
         style=ft.ButtonStyle(
@@ -476,7 +493,7 @@ def main(page: ft.Page):
     )
 
     manage_button = ft.OutlinedButton(
-        text="Manage Downloaded Wallpapers",
+        content="Manage Downloaded Wallpapers",
         icon=ft.Icons.LIBRARY_BOOKS_SHARP,
         on_click=lambda e: open_wallpaper_folder(e, page),
         style=ft.ButtonStyle(
@@ -487,7 +504,7 @@ def main(page: ft.Page):
     )
 
     search_button = ft.OutlinedButton(
-        text="Search for Wallpapers",
+        content="Search for Wallpapers",
         icon=ft.Icons.LIBRARY_BOOKS_SHARP,
         on_click=open_SteamWorkshop,
         style=ft.ButtonStyle(
@@ -500,8 +517,8 @@ def main(page: ft.Page):
     # Set the page background gradient
     page.bgcolor = None
     page.gradient = ft.LinearGradient(
-        begin=ft.alignment.top_left,
-        end=ft.alignment.bottom_right,
+        begin=ft.Alignment.TOP_LEFT,
+        end=ft.Alignment.BOTTOM_RIGHT,
         colors=[ft.Colors.WHITE, ft.Colors.BLUE_100] if page.theme_mode == ft.ThemeMode.LIGHT else [ft.Colors.BLACK, ft.Colors.BLUE_GREY_900],
     )
 
