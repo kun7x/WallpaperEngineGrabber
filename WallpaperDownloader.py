@@ -373,7 +373,7 @@ def main(page: ft.Page):
     )
 
     # FilePicker must be initialized AFTER set_save_location is defined
-    def set_save_location(e: ft.FilePickerResultEvent):
+    def set_save_location(e):
         global save_location
         if e.path and os.path.isdir(e.path):
             # Normalize path separators and check if it contains the required structure
@@ -567,4 +567,4 @@ if __name__ == "__main__":
     # For proper Windows taskbar icon support, build with:
     # flet build --name "Wallpaper Engine Workshop Downloader" --icon assets/favicon.ico --product-name "Wallpaper Engine Workshop Downloader" --product-version "1.0.0" --company-name "Your Company" --file-description "Wallpaper Engine Workshop Downloader" --copyright "Copyright (c) 2024" --targets windows
     
-    ft.app(target=main)
+    ft.run(main)
